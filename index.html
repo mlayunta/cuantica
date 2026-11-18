@@ -1,0 +1,1727 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1220">
+<meta name="author" content="Miguel Ángel Layunta López">
+<meta name="description" content="Laboratorio interactivo de física y computación cuántica.">
+<title>Cuántica de Bolsillo · Miguel Ángel Layunta López</title>
+<p class="muted">Versión 1.0 educativa · Simulador local</p>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--card:#141f32;--line:#354762;
+--text:#edf5ff;--muted:#b4c6dd;--mint:#76f4da;--rose:#ff96cf;
+font:16px/1.55 system-ui,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at 12% 0,#183954,transparent 34rem),var(--bg);color:var(--text)}
+header,main,nav,footer{max-width:1060px;margin:auto;padding:1rem}
+header{display:flex;gap:1rem;align-items:center;padding-top:2rem}
+header img{width:clamp(54px,10vw,82px)}
+h1,h2,h3,p{margin:.35rem 0 .7rem}
+h1{font-size:clamp(1.7rem,5vw,3rem);line-height:1.1}
+h2{font-size:1.55rem}h3{font-size:1.12rem}
+small,.tag{color:var(--mint);letter-spacing:.08em;font-weight:700}
+nav,.row{display:flex;flex-wrap:wrap;gap:.55rem;align-items:center}
+nav a,a{color:var(--mint)}
+nav a,button,select,input:not([type=range]),textarea{
+border:1px solid var(--line);border-radius:.55rem;padding:.48rem .7rem;
+background:#1b2a40;color:var(--text);font:inherit}
+nav a{text-decoration:none}button,select,summary{cursor:pointer}
+button:hover,nav a:hover{border-color:var(--mint)}
+:focus-visible{outline:3px solid var(--rose);outline-offset:2px}
+section{background:var(--card);border:1px solid var(--line);border-radius:1rem;
+padding:clamp(.9rem,3vw,1.7rem);margin-bottom:1rem}
+article,figure,details{margin:.65rem 0;background:#101a2b;border-radius:.6rem;padding:.8rem}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}
+canvas{width:100%;height:240px;display:block;background:#091221;border-radius:.6rem}
+canvas[tabindex]{touch-action:none;cursor:grab}
+#cloud{height:320px}label{display:block;margin:.35rem 0}
+input[type=range]{width:100%;accent-color:var(--mint)}
+input[type=number]{width:5.5rem}
+textarea{display:block;width:100%;min-height:13rem;font:14px/1.5 monospace}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#d4f9ff}
+#wire{min-height:3rem;padding:.8rem;margin:.7rem 0;border:1px dashed var(--mint);
+border-radius:.6rem;overflow-wrap:anywhere}
+.muted,figcaption,footer{color:var(--muted);font-size:.92rem}
+progress{width:50%;accent-color:var(--mint)}
+output{color:var(--mint)}summary{font-weight:650}
+math{font-size:1.15rem}
+@media(max-width:680px){.grid{grid-template-columns:1fr}canvas{height:215px}}
+
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <img src="./icon.svg" alt="">
+  <div><small>FÍSICA · SIMULACIÓN · APRENDIZAJE</small>
+  <h1>Cuántica de Bolsillo</h1><p>Autor: Miguel Ángel Layunta López</p></div>
+</header>
+<nav aria-label="Secciones">
+  <a href="#laboratorio">Circuitos</a><a href="#experimentos">Experimentos</a>
+  <a href="#materia">Orbitales y pozo</a><a href="#aprender">Aprender</a>
+  <a href="#referencia">Bolsillo</a><a href="#programar">Código</a>
+</nav>
+<main>
+<section id="laboratorio">
+  <small>01 / LABORATORIO</small><h2>Construye un circuito</h2>
+  <p>El primer dígito es A; el segundo, B. Toca las puertas o arrástralas al
+  circuito. Se aplican de izquierda a derecha, empezando en |00⟩.</p>
+  <div id="gates" class="row"></div>
+  <div id="wire" aria-label="Circuito actual"></div>
+  <div class="row">
+    <button id="measure">Medir ambos cúbits</button>
+    <button id="undo">Deshacer</button><button id="reset">Reiniciar</button>
+    <button id="bell">Cargar ejemplo de Bell</button>
+  </div>
+  <p id="measurement" aria-live="polite"></p>
+  <div class="grid">
+    <article><h3>Probabilidades conjuntas</h3><div id="bars"></div></article>
+    <article><h3>Amplitudes y correlación</h3><pre id="amps"></pre></article>
+  </div>
+  <h3>Esferas de Bloch</h3>
+  <p>Arrastra sobre una esfera o usa las flechas del teclado para girar la vista.
+  El punto rosa representa el estado local. En el centro indica mezcla máxima,
+  no ausencia de cúbit.</p>
+  <div class="grid">
+    <figure><canvas id="A" tabindex="0" aria-label="Esfera de Bloch de A"></canvas>
+    <figcaption id="capA"></figcaption></figure>
+    <figure><canvas id="B" tabindex="0" aria-label="Esfera de Bloch de B"></canvas>
+    <figcaption id="capB"></figcaption></figure>
+  </div>
+</section>
+
+<section id="experimentos">
+  <small>02 / EXPERIMENTOS</small><h2>Interferencia y efecto túnel</h2>
+  <div class="grid">
+    <article><h3>Doble rendija</h3>
+      <label>Longitud de onda: <output id="lambdaOut"></output>
+      <input id="lambda" type="range" min="400" max="700" value="550"></label>
+      <label>Separación de rendijas: <output id="sepOut"></output>
+      <input id="sep" type="range" min="55" max="200" value="110"></label>
+      <label>Visibilidad: <output id="visOut"></output>
+      <input id="vis" type="range" min="0" max="100" value="100"></label>
+      <canvas id="slits" aria-label="Intensidad relativa sobre la pantalla"></canvas>
+      <p id="slitText"></p>
+      <p class="muted">Campo lejano, pantalla a 1 m y rendijas de 20 µm de
+      anchura. Desactivar la interferencia no elimina la difracción.</p>
+    </article>
+    <article><h3>Barrera rectangular</h3>
+      <label>Energía del electrón: <output id="energyOut"></output>
+      <input id="energy" type="range" min="1" max="49" value="20"></label>
+      <label>Anchura de barrera: <output id="widthOut"></output>
+      <input id="width" type="range" min="1" max="20" value="5"></label>
+      <canvas id="barrier" aria-label="Perfil del potencial y energía incidente"></canvas>
+      <p id="tunnelText"></p>
+      <p class="muted">Solución estacionaria unidimensional para un electrón
+      con energía inferior a una barrera de 5 eV. El dibujo muestra el
+      potencial, no una trayectoria ni una función de onda.</p>
+    </article>
+  </div>
+</section>
+
+<section id="materia">
+  <small>03 / ESTADOS ESTACIONARIOS</small><h2>Explora una densidad de probabilidad</h2>
+  <label>Sistema
+    <select id="system">
+      <option value="1s">Hidrógeno · orbital 1s</option>
+      <option value="2p">Hidrógeno · orbital 2pᶻ</option>
+      <option value="box">Pozo cúbico infinito · estado (2,1,1)</option>
+    </select>
+  </label>
+  <canvas id="cloud" tabindex="0" aria-label="Nube de probabilidad tridimensional; gira con las flechas"></canvas>
+  <p id="cloudText"></p>
+  <p class="muted">Cada punto representa una muestra independiente de posición,
+  no un electrón adicional. Los colores distinguen el signo de la función de
+  onda real elegida. Las vistas usan escalas distintas.</p>
+</section>
+
+<section id="aprender">
+  <small>04 / RUTA DE APRENDIZAJE</small><h2>Predice, construye y comprueba</h2>
+  <label>Nivel
+    <select id="level"><option>Iniciación</option><option>Universitario</option>
+    <option>Computación cuántica</option></select>
+  </label>
+  <article><h3 id="lessonTitle"></h3><p id="lessonBody"></p>
+  <p><strong>Tu reto:</strong> <span id="task"></span></p></article>
+  <div class="row"><a href="#laboratorio">Abrir el constructor ↑</a>
+    <button id="check">Evaluar circuito</button>
+    <button id="next">Siguiente nivel</button></div>
+  <p id="feedback" aria-live="polite"></p><p id="progress" class="muted"></p>
+</section>
+
+<section id="referencia">
+  <small>05 / MODO BOLSILLO</small><h2>Referencia y calculadora</h2>
+  <details open><summary>Regla de Born</summary>
+    <p>La probabilidad de un resultado se obtiene del módulo cuadrado de su amplitud.</p>
+    <math display="block" aria-label="P de k igual al módulo cuadrado de alfa k">
+      <mi>P</mi><mo>(</mo><mi>k</mi><mo>)</mo><mo>=</mo>
+      <msup><mrow><mo>|</mo><msub><mi>α</mi><mi>k</mi></msub><mo>|</mo></mrow><mn>2</mn></msup>
+    </math>
+  </details>
+  <details><summary>Puertas de un cúbit: matrices</summary>
+    <pre>Orden de la base: |0⟩, |1⟩
+
+X = [0  1]      Y = [0 −i]      Z = [1  0]
+    [1  0]          [i  0]          [0 −1]
+
+H = (1/√2) [1  1]       S = [1  0]
+           [1 −1]           [0  i]</pre>
+  </details>
+  <details><summary>Superposición, mezcla y entrelazamiento</summary>
+    <p><b>Superposición:</b> combinación coherente de estados de una base.
+    La fase relativa puede afectar a mediciones posteriores.</p>
+    <p><b>Mezcla:</b> estado descrito mediante una matriz de densidad que no
+    corresponde a un único vector puro.</p>
+    <p><b>Entrelazamiento:</b> en un estado puro bipartito, imposibilidad de
+    escribir el estado conjunto como producto de estados locales.</p>
+  </details>
+  <details><summary>Constantes físicas</summary>
+    <p>Velocidad de la luz: 299 792 458 m/s.<br>
+    Constante de Planck: 6,62607015 × 10⁻³⁴ J·s.<br>
+    Carga elemental: 1,602176634 × 10⁻¹⁹ C.</p>
+  </details>
+  <article><h3>Autovalores de un observable de un cúbit</h3>
+    <p>Introduce una matriz hermítica. La entrada inferior izquierda se
+    toma como el conjugado de la superior derecha.</p>
+    <pre>[ a       u + iv ]
+[ u − iv  d      ]</pre>
+    <div class="row">
+      <label>a <input id="ma" type="number" step="any" value="1"></label>
+      <label>d <input id="md" type="number" step="any" value="-1"></label>
+      <label>u <input id="mu" type="number" step="any" value="0"></label>
+      <label>v <input id="mv" type="number" step="any" value="0"></label>
+    </div>
+    <p id="eigen" aria-live="polite"></p>
+  </article>
+</section>
+
+<section id="programar">
+  <small>06 / PROGRAMACIÓN</small><h2>Del circuito a Python</h2>
+  <p>Genera código Qiskit a partir del circuito actual. Puedes editarlo y
+  descargarlo. Esta versión no ejecuta Python ni envía trabajos a hardware.</p>
+  <div class="row"><button id="export">Generar desde el circuito</button>
+    <button id="download">Descargar .py</button></div>
+  <label>Editor Python<textarea id="python" spellcheck="false"></textarea></label>
+</section>
+</main>
+<footer>Miguel Ángel Layunta López · <span id="offline">Comprobando modo offline…</span></footer>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const labels=["00","01","10","11"], zero=()=>[[1,0],[0,0],[0,0],[0,0]];
+const add=(a,b)=>[a[0]+b[0],a[1]+b[1]], mul=(a,k)=>[a[0]*k,a[1]*k];
+const ii=a=>[-a[1],a[0]], abs2=a=>a[0]**2+a[1]**2;
+const fmt=x=>(Math.abs(x)<.00005?0:x).toFixed(4);
+const gates=["HA","HB","XA","XB","YA","YB","ZA","ZB","SA","SB","CA","CB"];
+const nameOf=g=>g[0]==="M"?"Medición: "+labels[+g[1]]:
+  g==="CA"?"CNOT A→B":g==="CB"?"CNOT B→A":g[0]+" · "+g[1];
+let steps=[],state=zero(),vectors=[[0,0,1],[0,0,1]];
+function apply(s,g){
+  const t=g[0],m=g[1]==="A"?2:1,w=s.slice();
+  if(t==="M"){
+    const k=+g[1];return s.map((z,i)=>i===k?mul(z,1/Math.sqrt(abs2(z))):[0,0]);
+  }
+  if(t==="C"){
+    for(let i=0;i<4;i++)w[(i&m)?i^(3^m):i]=s[i];
+    return w;
+  }
+  for(let i=0;i<4;i++)if(!(i&m)){
+    const j=i|m,a=s[i],b=s[j];
+    if(t==="H"){w[i]=mul(add(a,b),Math.SQRT1_2);
+      w[j]=mul(add(a,mul(b,-1)),Math.SQRT1_2)}
+    if(t==="X"){w[i]=b;w[j]=a}
+    if(t==="Y"){w[i]=mul(ii(b),-1);w[j]=ii(a)}
+    if(t==="Z")w[j]=mul(b,-1);
+    if(t==="S")w[j]=ii(b);
+  }
+  return w;
+}
+function local(s,m){
+  let x=0,y=0,z=0;
+  for(let i=0;i<4;i++)if(!(i&m)){
+    const a=s[i],b=s[i|m];
+    x+=2*(a[0]*b[0]+a[1]*b[1]);y+=2*(a[0]*b[1]-a[1]*b[0]);
+    z+=abs2(a)-abs2(b);
+  }
+  return [x,y,z];
+}
+function render(){
+  state=steps.reduce(apply,zero());vectors=[local(state,2),local(state,1)];
+  $("wire").textContent="|00⟩  →  "+(steps.map(nameOf).join("  →  ")||"Suelta aquí una puerta");
+  $("bars").replaceChildren();
+  state.forEach((z,i)=>{
+    const row=document.createElement("div"),bar=document.createElement("progress");
+    bar.max=1;bar.value=Math.min(1,abs2(z));bar.setAttribute("aria-label","Probabilidad de "+labels[i]);
+    row.append("|"+labels[i]+"⟩  ",bar,"  "+(100*abs2(z)).toFixed(1)+" %");
+    $("bars").append(row);
+  });
+  const zz=state.reduce((a,z,i)=>a+([0,3].includes(i)?1:-1)*abs2(z),0);
+  $("amps").textContent=state.map((z,i)=>"|"+labels[i]+"⟩ : "+fmt(z[0])+
+    (z[1]<0?" − ":" + ")+fmt(Math.abs(z[1]))+"i").join("\n")+"\n⟨Z_A Z_B⟩ = "+fmt(zz);
+  const last=steps[steps.length-1];
+  $("measurement").textContent=last?.[0]==="M"?
+    "Resultado: "+labels[+last[1]]+". Las gráficas muestran el estado posterior a la medición.":"";
+  ["A","B"].forEach((q,i)=>{
+    $("cap"+q).textContent=q+" · (x, y, z) = ("+vectors[i].map(fmt).join(", ")+")";
+    sphere(i);
+  });
+  $("feedback").textContent="";calc();
+}
+function insert(g){if(gates.includes(g)){steps.push(g);render()}}
+for(const g of gates){
+  const b=document.createElement("button");b.textContent=nameOf(g);b.draggable=true;
+  b.onclick=()=>insert(g);b.ondragstart=e=>e.dataTransfer.setData("text/plain",g);
+  $("gates").append(b);
+}
+$("wire").ondragover=e=>e.preventDefault();
+$("wire").ondrop=e=>{e.preventDefault();insert(e.dataTransfer.getData("text/plain"))};
+$("undo").onclick=()=>{steps.pop();render()};
+$("reset").onclick=()=>{steps=[];render()};
+$("bell").onclick=()=>{steps=["HA","CA"];render()};
+$("measure").onclick=()=>{
+  const p=state.map(abs2);let r=Math.random()*p.reduce((a,b)=>a+b,0);
+  let k=p.findIndex(n=>(r-=n)<0);
+  if(k<0)k=p.map(n=>n>0).lastIndexOf(true);
+  steps.push("M"+k);render();
+};
+
+// Las tres cámaras son independientes del estado físico.
+const cameras=[[.55,.32],[.55,.32],[.5,.35]];
+function canvas(id){
+  const el=$(id),w=el.clientWidth,h=el.clientHeight,d=Math.min(window.devicePixelRatio||1,2);
+  el.width=Math.round(w*d);el.height=Math.round(h*d);
+  const c=el.getContext("2d");c.setTransform(d,0,0,d,0,0);return [c,w,h];
+}
+function project([x,y,z],[a,b]){
+  const u=x*Math.cos(a)-y*Math.sin(a),v=x*Math.sin(a)+y*Math.cos(a);
+  return [u,-z*Math.cos(b)+v*Math.sin(b)];
+}
+function sphere(i){
+  const [c,w,h]=canvas(i?"B":"A"),r=.36*Math.min(w,h);
+  const p=v=>{const [x,y]=project(v,cameras[i]);return [w/2+r*x,h/2+r*y]};
+  c.strokeStyle="#526d89";c.beginPath();c.arc(w/2,h/2,r,0,2*Math.PI);c.stroke();
+  for(let k=0;k<3;k++){
+    c.beginPath();
+    for(let j=0;j<=80;j++){
+      const v=[0,0,0],t=j*Math.PI/40;v[k]=Math.cos(t);v[(k+1)%3]=Math.sin(t);
+      if(j)c.lineTo(...p(v));else c.moveTo(...p(v));
+    }
+    c.strokeStyle="#28445e";c.stroke();
+    const axis=[0,0,0];axis[k]=1;c.beginPath();c.moveTo(w/2,h/2);
+    c.lineTo(...p(axis));c.stroke();axis[k]=1.12;
+    c.fillStyle="#c4daeb";c.fillText("xyz"[k],...p(axis));
+  }
+  const tip=p(vectors[i]);c.strokeStyle="#76f4da";c.lineWidth=3;
+  c.beginPath();c.moveTo(w/2,h/2);c.lineTo(...tip);c.stroke();
+  c.fillStyle="#ff96cf";c.beginPath();c.arc(...tip,5,0,2*Math.PI);c.fill();
+}
+function rotate(id,i,draw){
+  let old=null;const el=$(id);
+  el.onpointerdown=e=>{old=[e.clientX,e.clientY];el.setPointerCapture(e.pointerId)};
+  el.onpointermove=e=>{if(!old)return;
+    cameras[i][0]+=(e.clientX-old[0])*.012;cameras[i][1]+=(e.clientY-old[1])*.012;
+    old=[e.clientX,e.clientY];draw()};
+  el.onpointerup=el.onpointercancel=el.onlostpointercapture=()=>{old=null};
+  el.onkeydown=e=>{
+    const d={ArrowLeft:[-.12,0],ArrowRight:[.12,0],ArrowUp:[0,-.12],ArrowDown:[0,.12]}[e.key];
+    if(d){e.preventDefault();cameras[i][0]+=d[0];cameras[i][1]+=d[1];draw()}
+  };
+}
+rotate("A",0,()=>sphere(0));rotate("B",1,()=>sphere(1));
+
+function optics(){
+  const l=+$("lambda").value*1e-9,d=+$("sep").value*1e-6,V=+$("vis").value/100;
+  $("lambdaOut").value=$("lambda").value+" nm";$("sepOut").value=$("sep").value+" µm";
+  $("visOut").value=V.toFixed(2);
+  const [c,w,h]=canvas("slits"),m=30,W=w-2*m,H=h-2*m;
+  c.strokeStyle="#49627a";c.strokeRect(m,m,W,H);c.beginPath();
+  for(let j=0;j<=W;j++){
+    const x=.06*(j/W-.5),b=Math.PI*20e-6*x/l,s=b?Math.sin(b)/b:1;
+    const I=s*s*(1+V*Math.cos(2*Math.PI*d*x/l))/2;
+    if(j)c.lineTo(m+j,h-m-H*I);else c.moveTo(m,h-m-H*I);
+  }
+  c.strokeStyle="#76f4da";c.stroke();c.fillStyle="#d2dfed";
+  c.fillText("1",12,m+4);c.fillText("0",12,h-m);
+  c.fillText("−30 mm",m,h-8);c.fillText("0",w/2,h-8);c.fillText("+30 mm",w-m-38,h-8);
+  $("slitText").textContent=V?"Separación central entre franjas: "+
+    (1000*l/d).toFixed(2)+" mm.":"Sin interferencia: queda la envolvente de difracción.";
+}
+function tunnel(){
+  const E=+$("energy").value/10,a=+$("width").value/10,U=5;
+  // kappa en nm^-1 para energía en eV, masa del electrón.
+  const k=5.12317*Math.sqrt(U-E);
+  const T=1/(1+U*U*Math.sinh(k*a)**2/(4*E*(U-E)));
+  $("energyOut").value=E.toFixed(1)+" eV";$("widthOut").value=a.toFixed(1)+" nm";
+  const [c,w,h]=canvas("barrier"),left=28,base=h-36,top=36,dx=(w-60)/3;
+  const x=left+(.5+(2-a)/2)*dx,y=base-(base-top)*E/U;
+  c.fillStyle="#244462";c.fillRect(x,top,a*dx,base-top);
+  c.strokeStyle="#76f4da";c.beginPath();c.moveTo(left,base);c.lineTo(x,base);
+  c.lineTo(x,top);c.lineTo(x+a*dx,top);c.lineTo(x+a*dx,base);c.lineTo(w-22,base);c.stroke();
+  c.strokeStyle="#ff96cf";c.setLineDash([5,4]);c.beginPath();c.moveTo(left,y);
+  c.lineTo(w-22,y);c.stroke();c.setLineDash([]);
+  c.fillStyle="#d2dfed";c.fillText("Potencial: 5 eV",left,20);
+  c.fillText("E = "+E.toFixed(1)+" eV",left,Math.max(32,y-5));
+  c.fillText("Posición →",left,h-10);
+  $("tunnelText").textContent="Probabilidad de transmisión: "+
+    (100*T<.001?(100*T).toExponential(2):(100*T).toFixed(3))+" %.";
+}
+["lambda","sep","vis"].forEach(id=>$(id).oninput=optics);
+["energy","width"].forEach(id=>$(id).oninput=tunnel);
+
+let points=[];
+function boxSample(n){
+  for(;;){const x=Math.random();if(Math.random()<Math.sin(n*Math.PI*x)**2)return x}
+}
+function makeCloud(){
+  const kind=$("system").value;points=[];
+  for(let j=0;j<3600;j++){
+    if(kind==="box"){
+      const x=boxSample(2),y=boxSample(1),z=boxSample(1);
+      points.push([1.5*(x-.5),1.5*(y-.5),1.5*(z-.5),x>.5]);continue;
+    }
+    const p=kind==="2p";let r=0;
+    for(let k=0;k<(p?5:3);k++)r-=Math.log(1-Math.random());
+    const u=2*Math.random()-1,z=p?Math.cbrt(u):u,t=2*Math.PI*Math.random();
+    const f=r/(p?11:8.6),s=Math.sqrt(1-z*z);
+    points.push([f*s*Math.cos(t),f*s*Math.sin(t),f*z,p&&z<0]);
+  }
+  $("cloudText").textContent={
+    "1s":"1s: densidad esférica. La densidad por unidad de volumen es máxima en el núcleo.",
+    "2p":"2pᶻ: el plano z = 0 es un nodo. Gira la nube para observar ambos lóbulos.",
+    "box":"Pozo cúbico infinito: el segundo modo en x introduce un plano nodal en el centro."
+  }[kind];drawCloud();
+}
+function drawCloud(){
+  const [c,w,h]=canvas("cloud"),r=.41*Math.min(w,h);
+  for(const v of points){
+    const [x,y]=project(v,cameras[2]);c.fillStyle=v[3]?"#ff96cf85":"#76f4da85";
+    c.fillRect(w/2+r*x,h/2+r*y,1.8,1.8);
+  }
+}
+$("system").onchange=makeCloud;rotate("cloud",2,drawCloud);
+
+// Ejercicios evaluados por fidelidad con el estado objetivo.
+const lessons=[
+  ["Una puerta que crea superposición",
+   "Una puerta H cambia la base. Aplicarla dos veces devuelve el estado inicial; medir entre ambas operaciones cambia el experimento.",
+   "Prepara |+⟩ en A y |0⟩ en B usando una sola puerta.",[1,0,1,0],1],
+  ["La fase también es observable",
+   "Dos estados pueden tener las mismas probabilidades en la base computacional y comportarse de forma distinta al interferir.",
+   "Prepara (|00⟩ − |10⟩)/√2 en dos puertas como máximo.",[1,0,-1,0],2],
+  ["Una pareja de Bell",
+   "Un registro de dos cúbits no siempre admite dos vectores de estado independientes. Comprueba qué ocurre con las esferas locales al entrelazar A y B.",
+   "Prepara (|00⟩ + |11⟩)/√2 con dos puertas como máximo.",[1,0,0,1],2]
+];
+const hints=[
+  ["Trabaja solo con A.","H en A mezcla |00⟩ y |10⟩ con el mismo signo."],
+  ["Primero crea amplitudes iguales.","Z en A cambia el signo de la componente |10⟩."],
+  ["Empieza creando superposición en A.","Usa A como control y B como objetivo."]
+];
+let done=new Set(),tries=[0,0,0];
+try{
+  const a=JSON.parse(localStorage.getItem("cb-progreso")||"[]");
+  if(Array.isArray(a))done=new Set(a.filter(n=>[0,1,2].includes(n)));
+}catch{}
+function lesson(){
+  const i=$("level").selectedIndex,L=lessons[i];
+  $("lessonTitle").textContent=L[0];$("lessonBody").textContent=L[1];$("task").textContent=L[2];
+  $("feedback").textContent="";$("progress").textContent="Retos superados: "+done.size+" de 3.";
+}
+$("level").onchange=lesson;
+$("check").onclick=()=>{
+  const i=$("level").selectedIndex,L=lessons[i];
+  if(steps.some(g=>g[0]==="M")){
+    $("feedback").textContent="Este reto pide preparar el estado sin medir. Deshaz la medición o reinicia.";return}
+  let z=[0,0];state.forEach((a,j)=>z=add(z,mul(a,L[3][j]*Math.SQRT1_2)));
+  if(abs2(z)>1-1e-9&&steps.length<=L[4]){
+    done.add(i);try{localStorage.setItem("cb-progreso",JSON.stringify([...done]))}catch{}
+    lesson();$("feedback").textContent="Correcto. Fidelidad 1, dentro del límite de puertas.";
+  }else{
+    const hint=hints[i][Math.min(tries[i]++,1)];
+    $("feedback").textContent=(steps.length>L[4]?"Has superado el límite. ":"")+
+      "Fidelidad: "+fmt(abs2(z))+". Pista: "+hint;
+  }
+};
+$("next").onclick=()=>{$("level").selectedIndex=Math.min(2,$("level").selectedIndex+1);lesson()};
+const pending=[0,1,2].find(i=>!done.has(i));$("level").selectedIndex=pending??2;
+
+function calc(){
+  const vals=["ma","md","mu","mv"].map(id=>$(id).valueAsNumber);
+  if(!vals.every(Number.isFinite)){$("eigen").textContent="Completa las cuatro entradas.";return}
+  const [a,d,u,v]=vals,c=(a+d)/2,r=Math.hypot((a-d)/2,u,v);
+  const [x,y,z]=vectors[0],mean=c+u*x-v*y+(a-d)*z/2;
+  $("eigen").textContent="Autovalores: "+fmt(c-r)+" y "+fmt(c+r)+
+    ". Valor esperado en el estado actual de A: "+fmt(mean)+".";
+}
+["ma","md","mu","mv"].forEach(id=>$(id).oninput=calc);
+
+function exportCode(){
+  const lines=["from qiskit import QuantumCircuit",
+    "qc = QuantumCircuit(2, 2)","# A = qubit 1; B = qubit 0."];
+  for(const g of steps){
+    const n=g[1]==="A"?1:0;
+    lines.push(g[0]==="M"?"qc.measure([0, 1], [0, 1])":g[0]==="C"?
+      `qc.cx(${n}, ${1-n})`:`qc.${g[0].toLowerCase()}(${n})`);
+  }
+  lines.push("print(qc.draw(output='text'))",
+    "# Las mediciones se exportan como operaciones, no como resultados prefijados.");
+  $("python").value=lines.join("\n")+"\n";
+}
+$("export").onclick=exportCode;
+$("download").onclick=()=>{
+  const url=URL.createObjectURL(new Blob([$("python").value],{type:"text/plain;charset=utf-8"}));
+  const a=document.createElement("a");a.href=url;a.download="circuito.py";a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+};
+render();optics();tunnel();makeCloud();lesson();exportCode();
+let frame;window.addEventListener("resize",()=>{
+  cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{
+    sphere(0);sphere(1);optics();tunnel();drawCloud()});
+});
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("./sw.js").then(()=>navigator.serviceWorker.ready)
+    .then(()=>{$("offline").textContent="Contenido local preparado para uso sin conexión."})
+    .catch(()=>{$("offline").textContent="Modo offline no disponible. Comprueba HTTPS o localhost."});
+}else $("offline").textContent="Este entorno no admite el modo offline.";
+</script>
+<style>
+.cb-panel{margin:1rem 0;padding:1rem;border:1px solid var(--line);
+  border-radius:.85rem;background:#101a2b}
+.cb-panel h3{margin-top:0}
+.cb-note{border-left:3px solid var(--mint);padding:.45rem .8rem;color:var(--muted)}
+.cb-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.cb-table th,.cb-table td{text-align:left;padding:.4rem;border-bottom:1px solid var(--line)}
+.cb-table th{color:var(--mint)}
+.cb-track{display:inline-block;width:clamp(24px,7vw,85px);height:.55rem;
+  background:#26374c;border-radius:1rem;overflow:hidden;vertical-align:middle;margin-right:.3rem}
+.cb-fill{display:block;height:100%;background:var(--mint)}
+.cb-observed{background:var(--rose)}
+.cb-scroll{overflow-x:auto}
+.cb-chip{display:inline-block;background:#342941;color:#ffd6ed;
+  border:1px solid #8e6788;border-radius:.45rem;padding:.1rem .38rem}
+.cb-status{min-height:1.4em}
+.cb-field{min-width:0}
+.cb-field input{width:100%}
+#cb-share-url{width:100%}
+#cb-tplot{height:180px}
+@media print{
+  body{background:white;color:black}
+  body.cb-printing header,body.cb-printing nav,body.cb-printing footer,
+  body.cb-printing main>section:not(#cb-lesson){display:none}
+  body.cb-printing #cb-lesson,body.cb-printing #cb-lesson article{
+    color:black;background:white;border-color:#777}
+  body.cb-printing #cb-lesson button,body.cb-printing #cb-lesson .cb-noprint{display:none}
+  body.cb-printing #cb-lesson .muted,body.cb-printing #cb-lesson small,
+  body.cb-printing #cb-lesson th{color:#234}
+}
+</style>
+
+<script>
+(() => {
+"use strict";
+
+// Esta ampliación utiliza las funciones del index.html original:
+// $, zero, apply, abs2, render, sphere, drawCloud y las cámaras existentes.
+const TAU = 2 * Math.PI;
+const outcomes = ["00","01","10","11"];
+const gateSet = new Set(gates);
+const pct = p => (100*p).toLocaleString("es-ES",{
+  minimumFractionDigits:1,maximumFractionDigits:1
+})+" %";
+
+function panel(parent, html){
+  const el=document.createElement("article");
+  el.className="cb-panel"; el.innerHTML=html; parent.append(el);
+  return el;
+}
+function button(text,action){
+  const b=document.createElement("button");
+  b.type="button"; b.textContent=text; b.onclick=action; return b;
+}
+function downloadText(filename,text,type="text/plain;charset=utf-8"){
+  const u=URL.createObjectURL(new Blob([text],{type}));
+  const a=document.createElement("a");
+  a.href=u; a.download=filename; document.body.append(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),1500);
+}
+function csv(filename,rows){
+  const cell=v=>'"'+String(v).replaceAll('"','""')+'"';
+  downloadText(filename,"\uFEFF"+rows.map(r=>r.map(cell).join(";")).join("\r\n"),
+    "text/csv;charset=utf-8");
+}
+
+// Mezclas representadas como conjuntos ponderados de estados puros.
+// Se suman probabilidades de ramas distintas, nunca sus amplitudes.
+const ket=k=>outcomes.map((_,i)=>i===k?[1,0]:[0,0]);
+function probabilities(branches){
+  const p=[0,0,0,0];
+  for(const {weight,psi} of branches)
+    psi.forEach((z,i)=>p[i]+=weight*abs2(z));
+  const total=p.reduce((a,b)=>a+b,0);
+  if(!(total>0))throw Error("Estado sin normalización.");
+  return p.map(v=>v/total);
+}
+function through(branches,ops){
+  return branches.map(({weight,psi})=>({
+    weight,psi:ops.reduce(apply,psi)
+  }));
+}
+function samples(p,n){
+  const counts=[0,0,0,0];
+  for(let s=0;s<n;s++){
+    const r=Math.random();let c=0,k=0;
+    while(k<3 && r>=(c+=p[k])) k++;
+    counts[k]++;
+  }
+  return counts;
+}
+function bellBranches(){
+  return through([{weight:1,psi:zero()}],["HA","CA"]);
+}
+function classicalBranches(){
+  return [{weight:.5,psi:ket(0)},{weight:.5,psi:ket(3)}];
+}
+function drawTable(el,p,counts,n){
+  el.replaceChildren();
+  const t=document.createElement("table"); t.className="cb-table";
+  t.innerHTML="<thead><tr><th>Estado</th><th>Ideal</th><th>Observado</th>"+
+    "<th>Recuento</th></tr></thead>";
+  const body=t.createTBody();
+  function value(cell,v,observed){
+    const track=document.createElement("span"),fill=document.createElement("span");
+    track.className="cb-track";track.setAttribute("aria-hidden","true");
+    fill.className="cb-fill"+(observed?" cb-observed":"");
+    fill.style.width=(100*v)+"%"; track.append(fill); cell.append(track,pct(v));
+  }
+  outcomes.forEach((s,i)=>{
+    const tr=body.insertRow();
+    const label=document.createElement("th");label.scope="row";label.textContent=s;tr.append(label);
+    value(tr.insertCell(),p[i],false);value(tr.insertCell(),counts[i]/n,true);
+    tr.insertCell().textContent=counts[i]+" / "+n;
+  });
+  el.append(t);
+}
+
+// 1. Medición individual frente a mediciones sobre muchas preparaciones.
+$("measure").textContent="Medir este par";
+$("undo").textContent="Deshacer edición";
+const batch=panel($("laboratorio"),`
+  <h3>Una medición no es un lote de mediciones</h3>
+  <p><strong>Medir este par</strong> modifica el estado que ves arriba.
+  Aquí, en cambio, cada ensayo prepara un par nuevo y lo mide una sola vez.
+  El lote no modifica el circuito.</p>
+  <div class="row">
+    <label>Preparaciones independientes
+      <select id="cb-n"><option>10</option><option selected>100</option>
+      <option>1000</option><option>10000</option></select>
+    </label>
+    <button id="cb-run">Ejecutar lote</button>
+    <button id="cb-csv" disabled>Descargar resultados CSV</button>
+  </div>
+  <p id="cb-batch-info" class="cb-status" aria-live="polite"></p>
+  <div id="cb-batch-table" class="cb-scroll"></div>
+  <p class="muted">Turquesa: probabilidad teórica. Rosa: frecuencia de este lote.
+  Los recuentos provienen del simulador local, no de hardware cuántico.</p>
+`);
+let lastBatch=null;
+$("cb-run").onclick=()=>{
+  if(steps.some(g=>g[0]==="M")){
+    $("cb-batch-info").textContent="Este circuito contiene una medición individual. "+
+      "Deshaz esa medición y las operaciones posteriores para ejecutar un lote de la preparación original.";
+    return;
+  }
+  const ops=steps.slice(),n=+$("cb-n").value;
+  const p=probabilities(through([{weight:1,psi:zero()}],ops));
+  const counts=samples(p,n);
+  lastBatch={ops,n,p,counts};
+  drawTable($("cb-batch-table"),p,counts,n);
+  $("cb-batch-info").textContent="Último lote: "+n+" pares. Preparación: "+
+    (ops.map(nameOf).join(" → ")||"|00⟩ sin puertas")+".";
+  $("cb-csv").disabled=false;
+};
+$("cb-csv").onclick=()=>{
+  if(!lastBatch)return;
+  const {ops,n,p,counts}=lastBatch;
+  csv("cuantica-lote.csv",[
+    ["fuente","puertas","estado","probabilidad_ideal","recuento","ensayos","frecuencia"],
+    ...outcomes.map((s,i)=>["simulador local",ops.join(" "),s,p[i],counts[i],n,counts[i]/n])
+  ]);
+};
+
+// 2. Lección insignia. Es independiente del circuito personal del usuario.
+const lessonSection=document.createElement("section");
+lessonSection.id="cb-lesson";
+lessonSection.innerHTML=`
+  <small>LECCIÓN GUIADA · ENTRELAZAMIENTO</small>
+  <h2>¿Cómo distingues dos preparaciones que parecen iguales?</h2>
+  <p>Una fuente prepara la pareja de Bell <strong>(|00⟩ + |11⟩)/√2</strong>.
+  Otra prepara <strong>|00⟩ o |11⟩ al azar</strong>, con la misma probabilidad.
+  Tu objetivo es elegir una medición que permita distinguirlas estadísticamente.</p>
+  <article>
+    <h3>1. Predice</h3>
+    <label>Si ambos cúbits se miden en la base X, ¿qué esperas?
+      <select id="cb-predict">
+        <option value="">Elige una predicción</option>
+        <option value="same">Las dos fuentes seguirán dando la misma distribución</option>
+        <option value="different">Sus distribuciones serán distintas</option>
+      </select>
+    </label>
+    <h3>2. Cambia la base y mide</h3>
+    <div class="row">
+      <label>Base común
+        <select id="cb-basis"><option value="Z">Z · medición directa</option>
+        <option value="X">X · H en A y B antes de medir</option></select>
+      </label>
+      <label>Pares por fuente
+        <select id="cb-bell-n"><option>10</option><option selected>100</option>
+        <option>1000</option></select>
+      </label>
+      <button id="cb-compare">Comparar fuentes</button>
+    </div>
+    <p class="muted">En la base X, las etiquetas 0 y 1 representan los
+    resultados + y −, respectivamente. Cada ensayo usa un par nuevo.</p>
+  </article>
+  <p id="cb-bell-info" aria-live="polite"></p>
+  <div class="grid">
+    <article><h3>Fuente 1 · Pareja de Bell</h3>
+    <div id="cb-bell-data" class="cb-scroll"></div></article>
+    <article><h3>Fuente 2 · Mezcla clásica</h3>
+    <div id="cb-mix-data" class="cb-scroll"></div></article>
+  </div>
+  <details><summary>3. Explicación conceptual</summary>
+    <p>En Z, las dos fuentes siempre dan resultados iguales para A y B.
+    En X, la pareja de Bell sigue dándolos iguales; en la mezcla clásica
+    coinciden solo la mitad de las veces, en promedio. Un solo resultado
+    igual no identifica la fuente.</p>
+    <p>No es una prueba de Bell contra modelos de variables ocultas:
+    es una comparación entre dos preparaciones concretas.</p>
+  </details>
+  <details><summary>Explicación universitaria</summary>
+    <p>Ambas preparaciones tienen los mismos términos diagonales en la base
+    computacional. Solo la pareja de Bell tiene coherencias entre 00 y 11.
+    La correlación ⟨Z⊗Z⟩ vale 1 para ambas; ⟨X⊗X⟩ vale 1 para la pareja
+    de Bell y 0 para la mezcla. Los estados locales son I/2 en ambos casos.</p>
+  </details>
+  <p><strong>Pregunta de cierre:</strong> si solo pudieras medir A,
+  ¿podrías distinguir estas dos fuentes, incluso disponiendo de muchos pares?</p>
+  <button id="cb-print">Imprimir ficha de actividad</button>
+`;
+$("laboratorio").after(lessonSection);
+const navLink=document.createElement("a");navLink.href="#cb-lesson";
+navLink.textContent="Lección Bell";document.querySelector("nav").append(navLink);
+$("cb-compare").onclick=()=>{
+  const x=$("cb-basis").value==="X",ops=x?["HA","HB"]:[],n=+$("cb-bell-n").value;
+  const p=probabilities(through(bellBranches(),ops));
+  const q=probabilities(through(classicalBranches(),ops));
+  drawTable($("cb-bell-data"),p,samples(p,n),n);
+  drawTable($("cb-mix-data"),q,samples(q,n),n);
+  const pred=$("cb-predict").value;
+  $("cb-bell-info").textContent="Último experimento: base "+(x?"X":"Z")+
+    ", "+n+" pares por fuente. "+
+    (!x?"En Z las distribuciones ideales coinciden. Prueba ahora en X.":
+    pred==="different"?"Tu predicción para X coincide con el modelo.":
+    pred==="same"?"Compara 01 y 10: en la mezcla aparecen y en esta pareja de Bell no.":
+    "Compara los resultados 01 y 10 de ambas fuentes.");
+};
+$("cb-print").onclick=()=>{document.body.classList.add("cb-printing");window.print()};
+window.addEventListener("afterprint",()=>document.body.classList.remove("cb-printing"));
+
+// 3. Túnel: perfil sin etiquetas superpuestas y transmisión en escala logarítmica.
+const tunnelCard=$("barrier").closest("article");
+const extra=document.createElement("div");
+extra.innerHTML=`
+  <p class="muted"><strong>Leyenda:</strong> turquesa = potencial;
+  rosa discontinuo = energía del electrón. La región sombreada es la barrera.</p>
+  <h3>Cómo cambia la transmisión con la anchura</h3>
+  <canvas id="cb-tplot" aria-label="Transmisión en escala logarítmica frente a la anchura"></canvas>
+  <p class="muted">Cada división etiquetada representa un factor de diez
+  en probabilidad. El punto rosa marca la anchura seleccionada.</p>
+  <button id="cb-tcsv">Descargar curva de transmisión</button>`;
+tunnelCard.append(extra);
+function transmission(E,a){
+  const V=5,k=5.12317*Math.sqrt(V-E);
+  return 1/(1+V*V*Math.sinh(k*a)**2/(4*E*(V-E)));
+}
+function newTunnel(){
+  const E=+$("energy").value/10,a=+$("width").value/10;
+  $("energyOut").value=E.toFixed(1)+" eV";$("widthOut").value=a.toFixed(1)+" nm";
+  const T=transmission(E,a);
+  $("tunnelText").textContent="Transmisión a "+a.toFixed(1)+" nm: "+
+    (T<.00001?(100*T).toExponential(3):(100*T).toFixed(4))+" %.";
+  {
+    const [c,w,h]=canvas("barrier"),L=36,R=w-16,B=h-36,top=32;
+    const X=x=>L+(R-L)*(x+.5)/3,Y=v=>B-(B-top)*v/5.6;
+    c.fillStyle="#244462";c.fillRect(X(0),Y(5),X(a)-X(0),B-Y(5));
+    c.strokeStyle="#76f4da";c.lineWidth=2;c.beginPath();
+    [[-.5,0],[0,0],[0,5],[a,5],[a,0],[2.5,0]].forEach(([x,y],i)=>
+      i?c.lineTo(X(x),Y(y)):c.moveTo(X(x),Y(y)));c.stroke();
+    c.strokeStyle="#ff96cf";c.setLineDash([5,4]);c.beginPath();
+    c.moveTo(L,Y(E));c.lineTo(R,Y(E));c.stroke();c.setLineDash([]);
+    c.fillStyle="#d2dfed";c.fillText("Energía (eV)",L,16);
+    c.fillText("5",15,Y(5)+3);c.fillText("0",15,B+3);
+    [0,1,2].forEach(v=>c.fillText(String(v),X(v)-3,B+14));
+    c.fillText("Posición (nm)",L,h-4);
+  }
+  {
+    const [c,w,h]=canvas("cb-tplot"),L=52,R=w-18,top=22,B=h-32;
+    const depth=Math.max(1,Math.ceil(-Math.log10(transmission(E,2))));
+    const X=x=>L+(R-L)*x/2,Y=v=>top+(B-top)*(-Math.log10(v))/depth;
+    c.fillStyle="#d2dfed";c.fillText("Probabilidad T",L,13);
+    const tickStep=Math.max(1,Math.ceil(depth/4));
+    for(let i=0;i<=depth;i++){
+      const y=Y(10**(-i));c.strokeStyle="#27384c";c.beginPath();
+      c.moveTo(L,y);c.lineTo(R,y);c.stroke();
+      if(i%tickStep===0)c.fillText(i===0?"1":"1e−"+i,5,y+3);
+    }
+    c.strokeStyle="#76f4da";c.lineWidth=2;c.beginPath();
+    for(let j=0;j<=200;j++){
+      const x=j/100,y=Y(transmission(E,x));
+      j?c.lineTo(X(x),y):c.moveTo(X(x),y);
+    }
+    c.stroke();c.fillStyle="#ff96cf";c.beginPath();c.arc(X(a),Y(T),5,0,TAU);c.fill();
+    c.fillStyle="#d2dfed";c.fillText("0 nm",L,B+18);
+    c.fillText("1 nm",X(1)-10,B+18);c.fillText("2 nm",R-25,B+18);
+  }
+}
+// El redibujado original por cambio de tamaño también usará el nuevo perfil.
+tunnel=newTunnel;
+$("energy").oninput=newTunnel;$("width").oninput=newTunnel;
+$("cb-tcsv").onclick=()=>{
+  const E=+$("energy").value/10;
+  csv("tunel-rectangular.csv",[
+    ["energia_eV","altura_eV","anchura_nm","probabilidad_transmision"],
+    ...Array.from({length:201},(_,i)=>[E,5,i/100,transmission(E,i/100)])
+  ]);
+};
+newTunnel();
+
+// 4. Controles accesibles, leyendas y datos de las gráficas.
+const cameraDefaults=[[.55,.32],[.55,.32],[.5,.35]];
+["A","B","cloud"].forEach((id,i)=>{
+  const draw=i===2?drawCloud:()=>sphere(i);
+  const b=button("Restablecer vista "+(i===2?"3D":id),()=>{
+    cameras[i]=cameraDefaults[i].slice();draw();
+  });
+  $(id).after(b);
+});
+const cloudNote=document.createElement("p");
+cloudNote.className="cb-note";
+cloudNote.textContent="Signo de la amplitud: turquesa (+), rosa (−). "+
+  "En 1s se ha elegido signo positivo en toda la nube. "+
+  "Los signos corresponden a la función de onda, no a la carga.";
+$("cloudText").after(cloudNote);
+cloudNote.after(button("Descargar nube con signos",()=>{
+  csv("nube-"+$("system").value+".csv",[
+    ["sistema","x_vista","y_vista","z_vista","signo_amplitud"],
+    ...points.map(([x,y,z,neg])=>[$("system").value,x,y,z,neg?"-":"+"])
+  ]);
+}));
+const slitButton=button("Descargar intensidad de la doble rendija",()=>{
+  const l=+$("lambda").value*1e-9,d=+$("sep").value*1e-6,V=+$("vis").value/100;
+  const rows=[["posicion_mm","intensidad_relativa","lambda_nm","separacion_um","visibilidad"]];
+  for(let i=0;i<=600;i++){
+    const mm=(i-300)/10,x=mm/1000,b=Math.PI*20e-6*x/l;
+    const sinc=b?Math.sin(b)/b:1;
+    rows.push([mm,sinc*sinc*(1+V*Math.cos(2*Math.PI*d*x/l))/2,l*1e9,d*1e6,V]);
+  }
+  csv("doble-rendija.csv",rows);
+});
+$("slitText").after(slitButton);
+
+// 5. Compartir preparaciones sin servidor. Solo se aceptan puertas conocidas.
+const share=panel($("laboratorio"),`
+  <h3>Comparte un circuito</h3>
+  <p>El enlace contiene la secuencia de puertas, no datos personales ni
+  resultados aleatorios. Para compartirlo fuera de tu equipo, publica primero
+  la PWA en una dirección HTTPS accesible.</p>
+  <div class="row">
+    <button id="cb-link">Crear enlace del circuito</button>
+    <button id="cb-copy" disabled>Copiar enlace</button>
+  </div>
+  <label class="cb-field">Enlace de la preparación
+    <input id="cb-share-url" readonly type="text">
+  </label>
+  <p id="cb-share-msg" aria-live="polite"></p>
+`);
+function decodeOps(value){
+  if(value==="")return [];
+  if(typeof value!=="string"||value.length>383)return null;
+  const ops=value.split(".");
+  return ops.length<=128&&ops.every(g=>gateSet.has(g))?ops:null;
+}
+$("cb-link").onclick=()=>{
+  $("cb-share-url").value="";$("cb-copy").disabled=true;
+  if(steps.some(g=>!gateSet.has(g))||steps.length>128){
+    $("cb-share-msg").textContent="Comparte una preparación sin mediciones y de hasta 128 puertas.";return;
+  }
+  const url=new URL(location.href);
+  url.searchParams.set("c",steps.join("."));url.hash="laboratorio";
+  $("cb-share-url").value=url.href;$("cb-copy").disabled=false;
+  $("cb-share-msg").textContent="Enlace preparado. Al abrirlo se reconstruye este circuito.";
+};
+$("cb-copy").onclick=async()=>{
+  try{await navigator.clipboard.writeText($("cb-share-url").value);
+    $("cb-share-msg").textContent="Enlace copiado."}
+  catch{$("cb-share-url").focus();$("cb-share-url").select();
+    $("cb-share-msg").textContent="Enlace seleccionado. Usa la opción Copiar de tu dispositivo."}
+};
+
+// 6. Galería editorial mínima: ejemplos con una pregunta, no solo botones.
+panel($("laboratorio"),`
+  <h3>Galería de Miguel Ángel Layunta López</h3>
+  <p>Estos ejemplos reemplazan el circuito del constructor.</p>
+  <div class="row" id="cb-gallery"></div>
+  <p id="cb-gallery-note" aria-live="polite"></p>
+`);
+[
+  ["Interferencia",["HA","ZA","HA"],
+   "Antes de mirar las barras: ¿por qué reaparece un resultado único?"],
+  ["Pareja de Bell",["HA","CA"],
+   "Compara las probabilidades conjuntas con la posición de los dos puntos locales."],
+  ["Fase imaginaria",["HA","SA"],
+   "La puerta S no cambia las probabilidades en Z. Observa hacia dónde apunta el vector de A."]
+].forEach(([title,ops,note])=>{
+  $("cb-gallery").append(button(title,()=>{
+    steps=ops.slice();render();$("cb-gallery-note").textContent=note;
+  }));
+});
+// Laboratorio de coherencia: extensión de la lección Bell.
+// d = fracción de coherencia perdida, entre 0 y 1.
+// La preparación es una mezcla de Bell+ y Bell−, no una suma de amplitudes.
+function coherenceSource(d){
+  if(!Number.isFinite(d) || d<0 || d>1){
+    throw new RangeError("La pérdida de coherencia debe estar entre 0 y 1.");
+  }
+  const plus=bellBranches()[0].psi;
+  const minus=apply(plus,"ZA");
+  return [
+    {weight:1-d/2, psi:plus},
+    {weight:d/2, psi:minus}
+  ];
+}
+
+function coherenceReadout(d){
+  const source=coherenceSource(d);
+  const z=probabilities(source);
+  const x=probabilities(through(source,["HA","HB"]));
+
+  // Promediamos los vectores locales de las ramas con sus pesos físicos.
+  function reduced(mask){
+    const result=[0,0,0];
+    for(const {weight,psi} of source){
+      const v=local(psi,mask);
+      v.forEach((value,i)=>result[i]+=weight*value);
+    }
+    return result;
+  }
+  return {z,x,a:reduced(2),b:reduced(1)};
+}
+
+// Inserción en la lección existente, antes de su botón de impresión.
+const coherenceBox=document.createElement("article");
+coherenceBox.className="cb-panel";
+coherenceBox.id="cb-coherence";
+coherenceBox.innerHTML=`
+  <small>EXPERIMENTO GUIADO · RUIDO DE FASE</small>
+  <h3>¿Dónde se ve la pérdida de coherencia?</h3>
+  <p>Empieza con una pareja de Bell. El ruido cambia la fase relativa
+  entre <strong>|00⟩</strong> y <strong>|11⟩</strong>, sin intercambiar
+  ceros y unos. ¿Qué medición será sensible a ese cambio?</p>
+
+  <label for="co-prediction"><strong>1. Registra tu predicción</strong></label>
+  <select id="co-prediction">
+    <option value="">Elige qué distribución ideal cambiará</option>
+    <option value="z">Solo la de Z</option>
+    <option value="x">Solo la de X</option>
+    <option value="both">Las dos</option>
+    <option value="none">Ninguna</option>
+  </select>
+  <button type="button" id="co-start">Explorar</button>
+  <p id="co-prompt" class="muted" aria-live="polite"></p>
+
+  <div id="co-experiment" hidden>
+    <label for="co-loss"><strong>2. Ajusta la pérdida de coherencia:</strong>
+      <output id="co-value" for="co-loss">0 %</output>
+    </label>
+    <input id="co-loss" type="range" min="0" max="100" step="1" value="0">
+    <div class="row">
+      <button type="button" data-co-loss="0">Pareja de Bell · 0 %</button>
+      <button type="button" data-co-loss="50">Punto medio · 50 %</button>
+      <button type="button" data-co-loss="100">Mezcla clásica · 100 %</button>
+    </div>
+
+    <h3>3. Compara las dos bases</h3>
+    <p>En Z se mide directamente. En X se aplica H a ambos cúbits antes
+    de medir. En cada columna, «iguales» significa que ambos detectores
+    dan el mismo resultado.</p>
+    <div class="cb-scroll">
+      <table class="cb-table">
+        <caption>Probabilidades ideales de la preparación seleccionada</caption>
+        <thead><tr><th scope="col">Resultado</th>
+          <th scope="col">Base Z</th><th scope="col">Base X</th></tr></thead>
+        <tbody id="co-ideal"></tbody>
+        <tfoot><tr><th scope="row">Iguales: 00 o 11</th>
+          <td id="co-same-z"></td><td id="co-same-x"></td></tr></tfoot>
+      </table>
+    </div>
+    <p id="co-finding" class="cb-note"></p>
+
+    <details>
+      <summary>¿Qué ve cada cúbit por separado?</summary>
+      <p id="co-local"></p>
+      <p>Ambos puntos de Bloch permanecen en el centro. Ninguna medición
+      sobre A a solas, ni sobre B a solas, permite estimar este deslizador.
+      Hay que comparar los resultados de los dos cúbits.</p>
+    </details>
+
+    <details>
+      <summary>Modelo matemático y significado del porcentaje</summary>
+      <p>Sea d la fracción de coherencia perdida. Se prepara Bell+ con peso
+      1 − d/2 y Bell− con peso d/2. Bell− solo se distingue de Bell+ por
+      el signo relativo entre |00⟩ y |11⟩.</p>
+      <p>El término de coherencia entre 00 y 11 pasa de 1/2 a (1 − d)/2.
+      Por tanto, la correlación ⟨X⊗X⟩ vale 1 − d, mientras que ⟨Z⊗Z⟩
+      sigue valiendo 1. Al llegar a d = 1, el estado conjunto equivale a
+      la mezcla clásica de |00⟩ y |11⟩ a partes iguales.</p>
+      <p>El porcentaje no es la probabilidad de invertir un bit, ni una
+      escala temporal calibrada. Este modelo representa pérdida de fase,
+      no todos los errores de un dispositivo real.</p>
+    </details>
+
+    <h3>4. Contrasta la predicción con un lote</h3>
+    <div class="row">
+      <label>Pares nuevos por base
+        <select id="co-n"><option>10</option><option selected>100</option>
+          <option>1000</option><option>10000</option></select>
+      </label>
+      <button type="button" id="co-run">Medir dos lotes independientes</button>
+      <button type="button" id="co-export" disabled>Descargar CSV</button>
+    </div>
+    <p class="muted">Se prepara un lote para Z y otro para X.
+    No se mide el mismo par dos veces en bases distintas.</p>
+    <p id="co-lot-status" aria-live="polite"></p>
+    <div id="co-lot" hidden class="grid">
+      <article><h3>Lote en Z</h3><div id="co-z-table" class="cb-scroll"></div></article>
+      <article><h3>Lote en X</h3><div id="co-x-table" class="cb-scroll"></div></article>
+    </div>
+    <button type="button" id="co-restart">Volver a predecir</button>
+  </div>
+`;
+$("cb-print").before(coherenceBox);
+
+let coherencePrediction="";
+let coherenceBatch=null;
+
+function clearCoherenceBatch(){
+  coherenceBatch=null;
+  $("co-lot").hidden=true;
+  $("co-export").disabled=true;
+  $("co-lot-status").textContent="";
+  $("co-z-table").replaceChildren();
+  $("co-x-table").replaceChildren();
+}
+
+function updateCoherence(){
+  const loss=Number($("co-loss").value);
+  const {z,x,a,b}=coherenceReadout(loss/100);
+  $("co-value").value=loss+" %";
+  $("co-loss").setAttribute("aria-valuetext",loss+" por ciento de coherencia perdida");
+
+  const body=$("co-ideal");
+  body.replaceChildren();
+  outcomes.forEach((label,i)=>{
+    const row=document.createElement("tr");
+    const head=document.createElement("th");
+    head.scope="row";head.textContent=label;row.append(head);
+    for(const p of [z[i],x[i]]){
+      const cell=document.createElement("td");
+      const track=document.createElement("span"),fill=document.createElement("span");
+      track.className="cb-track";track.setAttribute("aria-hidden","true");
+      fill.className="cb-fill";fill.style.width=(100*p)+"%";
+      track.append(fill);cell.append(track,pct(p));row.append(cell);
+    }
+    body.append(row);
+  });
+
+  $("co-same-z").textContent=pct(z[0]+z[3]);
+  $("co-same-x").textContent=pct(x[0]+x[3]);
+  const vector=v=>"("+v.map(n=>Math.abs(n)<1e-9?"0":n.toFixed(3)).join(", ")+")";
+  $("co-local").textContent="Vectores locales calculados: A = "+vector(a)+
+    "; B = "+vector(b)+".";
+
+  if(loss===0){
+    $("co-finding").textContent="Punto de partida: las dos bases dan resultados "+
+      "iguales para A y B con certeza. Aumenta la pérdida para poner a prueba tu predicción.";
+  }else{
+    const lead=coherencePrediction==="x"?"Tu predicción coincide con el modelo. ":
+      "Contrasta tu predicción con las dos columnas. ";
+    $("co-finding").textContent=lead+"En Z, 01 y 10 siguen siendo imposibles. "+
+      "En X, la probabilidad total de obtener resultados distintos es "+
+      pct(x[1]+x[2])+".";
+  }
+  clearCoherenceBatch();
+}
+
+$("co-start").onclick=()=>{
+  if(!$("co-prediction").value){
+    $("co-prompt").textContent="Elige primero una predicción. No hace falta acertar.";
+    $("co-prediction").focus();return;
+  }
+  coherencePrediction=$("co-prediction").value;
+  $("co-prediction").disabled=true;$("co-start").disabled=true;
+  $("co-prompt").textContent="Predicción registrada. Explora primero el punto medio.";
+  $("co-experiment").hidden=false;
+  updateCoherence();$("co-loss").focus();
+};
+$("co-loss").oninput=updateCoherence;
+coherenceBox.querySelectorAll("[data-co-loss]").forEach(b=>{
+  b.onclick=()=>{$("co-loss").value=b.dataset.coLoss;updateCoherence()};
+});
+$("co-n").onchange=clearCoherenceBatch;
+
+$("co-run").onclick=()=>{
+  const loss=Number($("co-loss").value),n=Number($("co-n").value);
+  const {z,x}=coherenceReadout(loss/100);
+  const cz=samples(z,n),cx=samples(x,n);
+  coherenceBatch={loss,n,z,x,cz,cx};
+  drawTable($("co-z-table"),z,cz,n);
+  drawTable($("co-x-table"),x,cx,n);
+  $("co-lot").hidden=false;$("co-export").disabled=false;
+  $("co-lot-status").textContent="Pérdida del "+loss+" %. Resultados distintos: "+
+    (cz[1]+cz[2])+" de "+n+" en Z; "+(cx[1]+cx[2])+" de "+n+
+    " en X. Son muestras del simulador local.";
+};
+
+$("co-export").onclick=()=>{
+  if(!coherenceBatch)return;
+  const {loss,n,z,x,cz,cx}=coherenceBatch;
+  const rows=[["fuente","perdida_porcentaje","base","resultado","probabilidad_ideal",
+    "recuento","pares_por_base","frecuencia"]];
+  for(const [basis,p,counts] of [["Z",z,cz],["X",x,cx]]){
+    outcomes.forEach((s,i)=>rows.push([
+      "simulador local",loss,basis,s,p[i],counts[i],n,counts[i]/n
+    ]));
+  }
+  csv("coherencia-"+loss+"-por-ciento.csv",rows);
+};
+
+$("co-restart").onclick=()=>{
+  clearCoherenceBatch();coherencePrediction="";
+  $("co-loss").value="0";$("co-experiment").hidden=true;
+  $("co-prediction").disabled=false;$("co-prediction").value="";
+  $("co-start").disabled=false;$("co-prompt").textContent="";
+  $("co-prediction").focus();
+};
+// MISIÓN · LA FUENTE MISTERIOSA
+// Requiere las funciones de las versiones 2 y 3.
+const mfNames=["Bell+","Bell−","Mezcla clásica de 00 y 11"];
+const mfBudget=30;
+const mfSources=[
+  ()=>bellBranches(),
+  ()=>coherenceSource(0).map(({weight,psi})=>({weight,psi:apply(psi,"ZA")})),
+  ()=>classicalBranches()
+];
+
+function mfDistribution(source,basis){
+  return probabilities(through(mfSources[source](),basis==="X"?["HA","HB"]:[]));
+}
+
+// El identificador fija únicamente la fuente, no los resultados de los ensayos.
+// No es un sistema secreto ni sirve para exámenes de alto riesgo.
+function mfSourceIndex(id){
+  let h=2166136261;
+  for(const ch of id) h=Math.imul(h^ch.charCodeAt(0),16777619);
+  return (h>>>0)%3;
+}
+function mfNewId(){
+  const bytes=new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
+}
+const mfValidId=id=>typeof id==="string" && /^[0-9a-f]{16}$/.test(id);
+const mfURL=new URL(location.href);
+const mfParam=mfURL.searchParams.get("mision");
+let mfId=mfValidId(mfParam)?mfParam:mfNewId();
+let mfSource=mfSourceIndex(mfId),mfRounds=[],mfStarted=false,mfClosed=false;
+let mfInitial="",mfFinal="",mfReason="",mfComment="";
+const mfUsed=()=>mfRounds.reduce((s,r)=>s+r.n,0);
+
+const mfSection=document.createElement("section");
+mfSection.id="fuente-misteriosa";
+mfSection.innerHTML=`
+  <small>MISIÓN 01 · CUADERNO DE INVESTIGACIÓN</small>
+  <h2>La fuente misteriosa</h2>
+  <p>Dispones de <strong>30 pares de cúbits</strong>. La fuente prepara cada
+  par de la misma manera: Bell+, Bell− o una mezcla clásica de 00 y 11.
+  Elige qué medir. Tu objetivo no es gastar todos los pares, sino justificar
+  qué explicaciones permiten tus datos.</p>
+
+  <article>
+    <h3>1. Antes de medir</h3>
+    <label for="mf-initial">Hipótesis inicial</label>
+    <select id="mf-initial">
+      <option value="">Selecciona una opción</option>
+      <option value="open">Aún no tengo preferencia</option>
+      <option value="0">Bell+</option>
+      <option value="1">Bell−</option>
+      <option value="2">Mezcla clásica de 00 y 11</option>
+    </select>
+    <button type="button" id="mf-start">Abrir mi investigación</button>
+  </article>
+
+  <article>
+    <h3>2. Diseña una medición</h3>
+    <p id="mf-budget"></p>
+    <div class="row">
+      <label>Base para ambos cúbits
+        <select id="mf-basis"><option value="Z">Z · directa</option>
+          <option value="X">X · H en ambos antes de medir</option></select>
+      </label>
+      <label>Pares de esta tanda
+        <input id="mf-n" type="number" min="1" max="30" step="1" value="3">
+      </label>
+      <button type="button" id="mf-measure">Preparar y medir la tanda</button>
+    </div>
+    <p class="muted">Cada par se usa una sola vez. En X, los símbolos 0 y 1
+    codifican los resultados + y −. Una coincidencia es 00 o 11.</p>
+    <div class="cb-scroll">
+      <table class="cb-table">
+        <caption>Cuaderno de tandas observadas</caption>
+        <thead><tr><th>Tanda</th><th>Base</th><th>Pares</th>
+        <th>00</th><th>01</th><th>10</th><th>11</th></tr></thead>
+        <tbody id="mf-log"></tbody>
+      </table>
+    </div>
+  </article>
+
+  <article>
+    <h3>3. Defiende tu conclusión</h3>
+    <label for="mf-final">Mi interpretación de los datos</label>
+    <select id="mf-final">
+      <option value="">Elige una conclusión</option>
+      <option value="0">Bell+ es la explicación mejor respaldada</option>
+      <option value="1">Bell− es la explicación mejor respaldada</option>
+      <option value="2">La mezcla clásica es la explicación mejor respaldada</option>
+      <option value="open">No tengo evidencia suficiente para decidir</option>
+    </select>
+    <label for="mf-reason">¿Qué observación respalda tu conclusión?
+    ¿Qué alternativa sigue siendo posible?</label>
+    <textarea id="mf-reason" rows="3" maxlength="2000"
+      style="min-height:5rem" placeholder="En la base…, observé…"></textarea>
+    <button type="button" id="mf-finish">Cerrar el cuaderno y revelar la fuente</button>
+    <p class="muted">Puedes terminar antes de gastar los 30 pares.
+    La revelación cierra la toma de datos.</p>
+  </article>
+
+  <p id="mf-status" class="cb-note" aria-live="polite"></p>
+  <div id="mf-reveal" hidden>
+    <article><h3 id="mf-answer"></h3>
+      <p id="mf-feedback"></p><p id="mf-evidence"></p>
+      <button type="button" id="mf-open-lab">Abrir preparación en el laboratorio</button>
+    </article>
+  </div>
+  <div class="row">
+    <button type="button" id="mf-save">Descargar cuaderno</button>
+    <button type="button" id="mf-share">Crear enlace para clase</button>
+    <button type="button" id="mf-new">Nueva misión</button>
+  </div>
+  <div id="mf-link-box" hidden>
+    <label>Enlace a la misma fuente, sin tus resultados
+      <input id="mf-link" readonly style="width:100%">
+    </label>
+    <p class="muted">Cada estudiante obtendrá muestras independientes.
+    Comparte una dirección HTTPS pública, no una dirección localhost.</p>
+  </div>
+`;
+lessonSection.after(mfSection);
+const mfNav=document.createElement("a");
+mfNav.href="#fuente-misteriosa";mfNav.textContent="Fuente misteriosa";
+document.querySelector("nav").append(mfNav);
+
+// El laboratorio de revelación admite también mezclas. No representa la
+// mezcla mediante un único circuito puro ni sobrescribe el circuito personal.
+const mfLab=panel($("laboratorio"),`
+  <small>REPRODUCCIÓN DE LA MISIÓN</small>
+  <h3 id="mf-lab-title">Preparación revelada</h3>
+  <p id="mf-lab-description"></p>
+  <div class="cb-scroll"><table class="cb-table">
+    <caption>Probabilidades ideales de la fuente revelada</caption>
+    <thead><tr><th>Resultado</th><th>Base Z</th><th>Base X</th></tr></thead>
+    <tbody id="mf-lab-data"></tbody></table></div>
+  <p class="muted">Referencia teórica independiente del circuito del constructor.</p>
+  <a href="#fuente-misteriosa">Volver al cuaderno ↓</a>
+`);
+mfLab.hidden=true;
+mfLab.id="mf-reproduction";
+mfLab.tabIndex=-1;
+
+function mfRender(){
+  const left=mfBudget-mfUsed(),active=mfStarted&&!mfClosed;
+  $("mf-budget").textContent="Pares disponibles: "+left+" de "+mfBudget+".";
+  $("mf-initial").disabled=mfStarted;
+  $("mf-start").disabled=mfStarted;
+  for(const id of ["mf-basis","mf-n","mf-measure"])
+    $(id).disabled=!active||left===0;
+  for(const id of ["mf-final","mf-reason","mf-finish"])
+    $(id).disabled=!active||!mfRounds.length;
+  $("mf-save").disabled=!mfStarted;
+  $("mf-n").max=String(left);
+  if(left>0 && Number($("mf-n").value)>left)$("mf-n").value=String(left);
+  $("mf-log").replaceChildren();
+  mfRounds.forEach((r,i)=>{
+    const tr=document.createElement("tr");
+    for(const v of [i+1,r.basis,r.n,...r.counts]){
+      const td=document.createElement("td");td.textContent=String(v);tr.append(td);
+    }
+    $("mf-log").append(tr);
+  });
+}
+
+function mfLabel(value){
+  return value==="open"?"Sin preferencia o sin evidencia suficiente":
+    mfNames[Number(value)];
+}
+
+// Analiza solamente las observaciones; no consulta la fuente oculta.
+function mfAssess(rounds,choice){
+  let equal=0,different=0;
+  for(const r of rounds)if(r.basis==="X"){
+    equal+=r.counts[0]+r.counts[3];
+    different+=r.counts[1]+r.counts[2];
+  }
+  const nx=equal+different;
+  if(nx===0){
+    return {
+      feedback:choice==="open"
+        ?"Conclusión justificada: tus mediciones en Z no distinguen las tres fuentes."
+        :"Tu elección podría coincidir con la fuente, pero los datos en Z no la favorecen frente a las otras dos.",
+      evidence:"En Z, las tres hipótesis predicen exactamente la misma distribución. "+
+        "Más pares en esa misma base no resolverían la duda."
+    };
+  }
+  if(equal>0 && different>0){
+    return {
+      feedback:choice==="2"
+        ?"Conclusión justificada: has descartado las dos parejas de Bell ideales."
+        :"Tus datos sí permiten decidir entre estas tres hipótesis ideales: solo la mezcla admite ambos tipos de resultado en X.",
+      evidence:"En X hubo "+equal+" coincidencias y "+different+" discrepancias. "+
+        "Una discrepancia descarta Bell+; una coincidencia descarta Bell−. "+
+        "Esta conclusión depende del modelo sin ruido."
+    };
+  }
+  const best=equal>0?0:1,other=1-best;
+  const event=equal>0?"coincidencias":"discrepancias";
+  const evidence="En X observaste "+nx+" "+event+" de "+nx+". "+
+    "Esto descarta "+mfNames[other]+". La secuencia es "+
+    (2**nx).toLocaleString("es-ES")+" veces más verosímil bajo "+
+    mfNames[best]+" que bajo la mezcla. No es una probabilidad posterior "+
+    "ni una demostración de certeza.";
+  let feedback;
+  if(choice===String(best))
+    feedback="Tu elección es la mejor respaldada por los datos, aunque la mezcla sigue siendo posible.";
+  else if(choice==="open")
+    feedback="Es correcto no afirmar certeza. Los datos no identifican la fuente sin ambigüedad, "+
+      "pero sí favorecen a "+mfNames[best]+" frente a la mezcla.";
+  else if(choice==="2")
+    feedback="La mezcla es compatible, pero no es la explicación más respaldada por esta secuencia.";
+  else feedback="La fuente elegida es incompatible con al menos uno de tus resultados en X.";
+  return {feedback,evidence};
+}
+
+$("mf-start").onclick=()=>{
+  const v=$("mf-initial").value;
+  if(!v){$("mf-status").textContent="Elige una hipótesis inicial. «Aún no tengo preferencia» también vale.";return}
+  mfInitial=v;mfStarted=true;mfRender();
+  $("mf-status").textContent="Cuaderno abierto. Elige la base y el tamaño de la primera tanda.";
+};
+
+$("mf-measure").onclick=()=>{
+  if(!mfStarted||mfClosed)return;
+  const n=$("mf-n").valueAsNumber,left=mfBudget-mfUsed(),basis=$("mf-basis").value;
+  if(!Number.isInteger(n)||n<1||n>left){
+    $("mf-status").textContent="Introduce un número entero entre 1 y "+left+".";return;
+  }
+  const counts=samples(mfDistribution(mfSource,basis),n);
+  mfRounds.push({basis,n,counts});mfRender();
+  $("mf-status").textContent="Tanda "+mfRounds.length+" registrada en "+basis+
+    ": "+(counts[0]+counts[3])+" coincidencias y "+(counts[1]+counts[2])+
+    " discrepancias."+(mfUsed()===mfBudget?" Presupuesto agotado: redacta tu conclusión.":"");
+};
+
+$("mf-finish").onclick=()=>{
+  if(!mfStarted||mfClosed||!mfRounds.length)return;
+  const choice=$("mf-final").value,reason=$("mf-reason").value.trim();
+  if(!choice||!reason){
+    $("mf-status").textContent="Elige una conclusión y anota al menos una observación antes de revelar la fuente.";
+    (!choice?$("mf-final"):$("mf-reason")).focus();return;
+  }
+  mfFinal=choice;mfReason=reason;mfClosed=true;
+  const result=mfAssess(mfRounds,choice);
+  mfComment=result.feedback+"\n"+result.evidence;
+  $("mf-answer").textContent="La fuente era: "+mfNames[mfSource];
+  $("mf-feedback").textContent=result.feedback;
+  $("mf-evidence").textContent=result.evidence;
+  $("mf-reveal").hidden=false;mfRender();
+  $("mf-status").textContent="Investigación cerrada tras usar "+mfUsed()+
+    " pares. La valoración compara la conclusión seleccionada con los datos; "+
+    "tu explicación escrita se conserva en el cuaderno.";
+};
+
+$("mf-open-lab").onclick=()=>{
+  if(!mfClosed)return;
+  const descriptions=[
+    "Preparación: empieza en |00⟩, aplica H en A y luego CNOT A→B.",
+    "Preparación: empieza en |00⟩, aplica H en A, CNOT A→B y finalmente Z en A.",
+    "Preparación: para cada par, selecciona |00⟩ o |11⟩ con probabilidad 1/2. "+
+    "Se suman probabilidades de dos ramas clásicas, no amplitudes."
+  ];
+  $("mf-lab-title").textContent="Fuente reproducida: "+mfNames[mfSource];
+  $("mf-lab-description").textContent=descriptions[mfSource];
+  const z=mfDistribution(mfSource,"Z"),x=mfDistribution(mfSource,"X");
+  $("mf-lab-data").replaceChildren();
+  outcomes.forEach((s,i)=>{
+    const tr=document.createElement("tr");
+    for(const text of [s,pct(z[i]),pct(x[i])]){
+      const td=document.createElement("td");td.textContent=text;tr.append(td);
+    }
+    $("mf-lab-data").append(tr);
+  });
+  mfLab.hidden=false;mfLab.focus();mfLab.scrollIntoView({block:"center"});
+};
+
+$("mf-save").onclick=()=>{
+  if(!mfStarted)return;
+  const text=[
+    "CUÁNTICA DE BOLSILLO · CUADERNO DE INVESTIGACIÓN",
+    "Aplicación de Miguel Ángel Layunta López",
+    "Misión: "+mfId,
+    "Estado: "+(mfClosed?"cerrada":"en curso"),
+    "Hipótesis inicial: "+mfLabel(mfInitial),
+    "Pares utilizados: "+mfUsed()+" / "+mfBudget,
+    "",
+    "Tanda | Base | Pares | 00 | 01 | 10 | 11",
+    ...mfRounds.map((r,i)=>[i+1,r.basis,r.n,...r.counts].join(" | ")),
+    "",
+    "Conclusión: "+(mfClosed?mfLabel(mfFinal):"Pendiente"),
+    "Anotación: "+(mfClosed?mfReason:($("mf-reason").value.trim()||"—")),
+    ...(mfClosed?["Fuente revelada: "+mfNames[mfSource],mfComment]:[])
+  ].join("\n");
+  downloadText("cuaderno-"+mfId+".txt",text);
+};
+
+$("mf-share").onclick=()=>{
+  const url=new URL(location.href);
+  url.search="";url.searchParams.set("mision",mfId);url.hash="fuente-misteriosa";
+  $("mf-link-box").hidden=false;$("mf-link").value=url.href;
+  $("mf-link").focus();$("mf-link").select();
+  $("mf-status").textContent="Enlace seleccionado para copiar. Contiene la misión, no tu cuaderno.";
+};
+
+$("mf-new").onclick=()=>{
+  if(mfStarted&&!window.confirm("¿Abrir otra misión? Descarga antes el cuaderno si deseas conservarlo."))return;
+    mfForgetNotebook(mfId);
+  mfId=mfNewId();mfSource=mfSourceIndex(mfId);
+  mfStarted=false;mfClosed=false;mfInitial="";mfFinal="";mfReason="";mfComment="";mfRounds=[];
+  $("mf-initial").value="";$("mf-final").value="";$("mf-reason").value="";
+  $("mf-basis").value="Z";$("mf-n").value="3";
+  $("mf-reveal").hidden=true;mfLab.hidden=true;$("mf-link-box").hidden=true;
+  const url=new URL(location.href);url.searchParams.set("mision",mfId);
+  url.hash="fuente-misteriosa";history.replaceState(null,"",url);
+  mfRender();$("mf-status").textContent="Nueva misión lista. La fuente se ha sorteado de nuevo.";
+};
+mfRender();
+$("mf-status").textContent=mfValidId(mfParam)
+  ?"Misión compartida cargada. La fuente es la misma para el grupo; tus mediciones serán independientes."
+  :"Misión lista. El cuaderno permanece en esta pestaña; descárgalo antes de salir.";
+// VERSIÓN 1.0 EDUCATIVA · Persistencia local de «La fuente misteriosa».
+const mfStorePrefix = "cuantica-bolsillo:cuaderno:v1:";
+const mfLastKey = mfStorePrefix + "ultimo";
+const mfStoreKey = id => mfStorePrefix + id;
+const mfOptions = ["open", "0", "1", "2"];
+
+const mfSaveNote = document.createElement("p");
+mfSaveNote.className = "muted";
+$("mf-status").after(mfSaveNote);
+
+function mfStorageWarning() {
+  mfSaveNote.textContent =
+    "No se puede usar el guardado local. Descarga tu cuaderno antes de salir.";
+}
+
+function mfForgetNotebook(id) {
+  try {
+    localStorage.removeItem(mfStoreKey(id));
+    if (localStorage.getItem(mfLastKey) === id) {
+      localStorage.removeItem(mfLastKey);
+    }
+    mfSaveNote.textContent = "";
+  } catch {
+    mfStorageWarning();
+  }
+}
+
+function mfSaveNotebook() {
+  if (!mfStarted) return;
+  const data = {
+    version: 1,
+    id: mfId,
+    initial: mfInitial,
+    rounds: mfRounds,
+    choice: $("mf-final").value,
+    reason: $("mf-reason").value,
+    closed: mfClosed
+  };
+  try {
+    // Primero el cuaderno; después la referencia al último cuaderno usado.
+    localStorage.setItem(mfStoreKey(mfId), JSON.stringify(data));
+    localStorage.setItem(mfLastKey, mfId);
+    mfSaveNote.textContent =
+      "Cuaderno guardado en este navegador. No se envía al enlace de clase.";
+  } catch {
+    mfStorageWarning();
+  }
+}
+
+function mfValidNotebook(d, id) {
+  if (!d || d.version !== 1 || d.id !== id || !mfValidId(id) ||
+      !mfOptions.includes(d.initial) ||
+      !["", ...mfOptions].includes(d.choice) ||
+      typeof d.reason !== "string" || d.reason.length > 2000 ||
+      typeof d.closed !== "boolean" || !Array.isArray(d.rounds) ||
+      d.rounds.length > mfBudget) return false;
+
+  let used = 0;
+  for (const r of d.rounds) {
+    if (!r || !["X", "Z"].includes(r.basis) ||
+        !Number.isInteger(r.n) || r.n < 1 || r.n > mfBudget ||
+        !Array.isArray(r.counts) || r.counts.length !== 4 ||
+        !r.counts.every(c => Number.isInteger(c) && c >= 0 && c <= r.n) ||
+        r.counts.reduce((a, b) => a + b, 0) !== r.n) return false;
+    used += r.n;
+  }
+  return used <= mfBudget &&
+    (!d.closed || (used > 0 && d.choice !== "" && d.reason.trim() !== ""));
+}
+
+function mfRestoreNotebook(d) {
+  mfId = d.id;
+  mfSource = mfSourceIndex(d.id);
+  mfStarted = true;
+  mfClosed = d.closed;
+  mfInitial = d.initial;
+  mfFinal = d.closed ? d.choice : "";
+  mfReason = d.closed ? d.reason.trim() : "";
+  mfRounds = d.rounds; // Recuperar recuentos, NO llamar a samples().
+  mfComment = "";
+
+  $("mf-initial").value = d.initial;
+  $("mf-final").value = d.choice;
+  $("mf-reason").value = d.reason;
+  $("mf-reveal").hidden = !d.closed;
+
+  if (d.closed) {
+    const result = mfAssess(mfRounds, mfFinal);
+    mfComment = result.feedback + "\n" + result.evidence;
+    $("mf-answer").textContent = "La fuente era: " + mfNames[mfSource];
+    $("mf-feedback").textContent = result.feedback;
+    $("mf-evidence").textContent = result.evidence;
+  }
+  mfRender();
+  $("mf-status").textContent = d.closed
+    ? "Cuaderno recuperado. La investigación está cerrada y puedes descargarla."
+    : "Investigación recuperada. Tus tandas y tu borrador siguen aquí.";
+  mfSaveNotebook();
+}
+
+// Los manejadores originales ya están instalados: primero actualizan el
+// cuaderno y después estos listeners guardan su nuevo estado.
+for (const id of ["mf-start", "mf-measure", "mf-finish"]) {
+  $(id).addEventListener("click", mfSaveNotebook);
+}
+$("mf-final").addEventListener("change", mfSaveNotebook);
+$("mf-reason").addEventListener("input", mfSaveNotebook);
+
+function mfOfferRecovery() {
+  let id, raw;
+  try {
+    // Un enlace de clase nunca debe recuperar una misión distinta.
+    id = mfValidId(mfParam) ? mfParam : localStorage.getItem(mfLastKey);
+    if (!mfValidId(id)) return;
+    raw = localStorage.getItem(mfStoreKey(id));
+  } catch {
+    mfStorageWarning();
+    return;
+  }
+  if (!raw) return;
+
+  let d;
+  try { d = JSON.parse(raw); } catch { d = null; }
+  if (!mfValidNotebook(d, id)) {
+    mfSaveNote.textContent =
+      "El cuaderno guardado no se ha podido leer. Puedes iniciar la misión de nuevo.";
+    return;
+  }
+
+  const box = document.createElement("article");
+  const message = document.createElement("p");
+  const used = d.rounds.reduce((sum, r) => sum + r.n, 0);
+  message.textContent = d.closed
+    ? "Tienes un cuaderno cerrado en este dispositivo."
+    : `Tienes una investigación en curso. Has utilizado ${used} de ${mfBudget} pares.`;
+
+  const resume = document.createElement("button");
+  resume.type = "button";
+  resume.textContent = d.closed ? "Ver mi cuaderno" : "Continuar investigación";
+
+  const fresh = document.createElement("button");
+  fresh.type = "button";
+  fresh.textContent = "Descartar cuaderno y empezar de cero";
+
+  box.append(message, resume, document.createTextNode(" "), fresh);
+  $("mf-initial").closest("article").before(box);
+  $("mf-start").disabled = true;
+  $("mf-initial").disabled = true;
+  $("mf-new").disabled = true;
+  $("mf-share").disabled = true;
+
+  function dismiss() {
+    box.remove();
+    $("mf-new").disabled = false;
+    $("mf-share").disabled = false;
+  }
+  resume.onclick = () => {
+    dismiss();
+    mfRestoreNotebook(d);
+  };
+  fresh.onclick = () => {
+    if (!window.confirm("¿Descartar este cuaderno guardado? No podrás recuperarlo.")) return;
+    mfForgetNotebook(id);
+    dismiss();
+    // Si se entró por un enlace de clase, se mantiene su fuente.
+    mfRender();
+    $("mf-status").textContent = "Cuaderno en blanco. Registra tu hipótesis inicial.";
+    $("mf-initial").focus();
+  };
+}
+mfOfferRecovery();
+
+// 7. Comprobaciones físicas ejecutables desde la propia aplicación.
+const testPanel=panel($("referencia"),`
+  <h3>Verificación del laboratorio</h3>
+  <p>Pruebas deterministas con tolerancia numérica. No dependen de obtener
+  ciertos recuentos al azar.</p>
+  <button id="cb-test">Ejecutar comprobaciones</button>
+  <pre id="cb-test-result" aria-live="polite"></pre>
+`);
+const close=(a,b)=>Math.abs(a-b)<1e-9;
+const same=(a,b)=>a.length===b.length&&a.every((v,i)=>close(v,b[i]));
+function runTests(){
+  const tests=[];
+  const addTest=(title,ok)=>tests.push([title,Boolean(ok)]);
+  const B=bellBranches(),M=classicalBranches();
+  addTest("Bell en Z: solo 00 y 11",same(probabilities(B),[.5,0,0,.5]));
+  addTest("Mezcla en Z: solo 00 y 11",same(probabilities(M),[.5,0,0,.5]));
+  addTest("Bell en X: correlación perfecta",
+    same(probabilities(through(B,["HA","HB"])),[.5,0,0,.5]));
+  addTest("Mezcla en X: cuatro resultados equiprobables",
+    same(probabilities(through(M,["HA","HB"])),[.25,.25,.25,.25]));
+  addTest("Ambos estados locales de Bell son máximamente mixtos",
+    same(local(B[0].psi,2),[0,0,0])&&same(local(B[0].psi,1),[0,0,0]));
+  const hy=["HA","SA"].reduce(apply,zero());
+  addTest("H seguida de S orienta A hacia +Y",same(local(hy,2),[0,1,0]));
+  const hzh=["HA","ZA","HA"].reduce(apply,zero());
+  addTest("H-Z-H en A prepara 10",same(hzh.map(abs2),[0,0,1,0]));
+  const probes=[...outcomes.map((_,i)=>ket(i)),hy,B[0].psi];
+  addTest("Cada puerta conserva la norma en los estados de prueba",
+    gates.every(g=>probes.every(v=>close(apply(v,g).map(abs2).reduce((a,b)=>a+b,0),1))));
+  addTest("CNOT B→A transforma 01 en 11",
+    same(apply(ket(1),"CB").map(abs2),[0,0,0,1]));
+  addTest("El colapso de Bell sobre 11 es repetible",
+    same(apply(apply(B[0].psi,"M3"),"M3").map(abs2),[0,0,0,1]));
+  addTest("Barrera de anchura cero: transmisión 1",close(transmission(2,0),1));
+  addTest("Ensachar la barrera reduce la transmisión",transmission(2,.8)<transmission(2,.4));
+   const co0=coherenceReadout(0);
+  const co50=coherenceReadout(.5);
+  const co100=coherenceReadout(1);
+
+  addTest("Coherencia: a 0 %, Bell conserva correlación perfecta en X",
+    same(co0.x,[.5,0,0,.5]));
+
+  addTest("Coherencia: a 50 %, X da 37,5 / 12,5 / 12,5 / 37,5 %",
+    same(co50.x,[.375,.125,.125,.375]));
+
+  addTest("Coherencia: a 100 %, los cuatro resultados en X son equiprobables",
+    same(co100.x,[.25,.25,.25,.25]));
+
+  const scan=Array.from({length:101},(_,i)=>coherenceReadout(i/100));
+
+  addTest("Coherencia: Z permanece invariante en las 101 posiciones",
+    scan.every(r=>same(r.z,[.5,0,0,.5])));
+
+  addTest("Coherencia: ambos vectores locales permanecen en el centro",
+    scan.every(r=>same(r.a,[0,0,0]) && same(r.b,[0,0,0])));
+
+  addTest("Coherencia: la correlación en X decrece como 1 − d",
+    scan.every((r,i)=>close(r.x[0]-r.x[1]-r.x[2]+r.x[3],1-i/100)));
+  addTest("Misión: las tres fuentes son indistinguibles en Z",
+    [0,1,2].every(s=>same(mfDistribution(s,"Z"),[.5,0,0,.5])));
+
+  addTest("Misión: Bell− siempre da discrepancias en X",
+    same(mfDistribution(1,"X"),[0,.5,.5,0]));
+
+  addTest("Misión: Bell+ y mezcla tienen distribuciones distintas en X",
+    same(mfDistribution(0,"X"),[.5,0,0,.5]) &&
+    same(mfDistribution(2,"X"),[.25,.25,.25,.25]));
+
+  addTest("Misión: medir solo en Z justifica reservar el juicio",
+    mfAssess([{basis:"Z",n:10,counts:[4,0,0,6]}],"open")
+      .feedback.startsWith("Conclusión justificada"));
+
+  addTest("Misión: coincidencia y discrepancia en X descartan ambas Bell",
+    mfAssess([{basis:"X",n:2,counts:[1,1,0,0]}],"2")
+      .feedback.startsWith("Conclusión justificada"));
+ 
+  $("cb-test-result").textContent=tests.filter(t=>t[1]).length+" / "+tests.length+
+    " comprobaciones superadas\n\n"+tests.map(([t,ok])=>(ok?"✓ ":"✗ ")+t).join("\n");
+}
+$("cb-test").onclick=runTests;
+
+// Conserva una distinción visual entre una puerta y la medición del historial.
+const originalRender=render;
+render=function(){
+  originalRender();
+  const wire=$("wire");
+  if(steps.some(g=>g[0]==="M")){
+    wire.replaceChildren(document.createTextNode("|00⟩"));
+    for(const g of steps){
+      wire.append(" → ");
+      if(g[0]==="M"){
+        const chip=document.createElement("span");chip.className="cb-chip";
+        chip.textContent=nameOf(g);wire.append(chip);
+      }else wire.append(nameOf(g));
+    }
+  }
+  // No presentar un lote o un enlace anterior como si fueran del circuito editado.
+  if(lastBatch){
+    lastBatch=null;$("cb-batch-table").replaceChildren();$("cb-csv").disabled=true;
+    $("cb-batch-info").textContent="El circuito ha cambiado. Ejecuta un nuevo lote.";
+  }
+  $("cb-share-url").value="";$("cb-copy").disabled=true;$("cb-share-msg").textContent="";
+  $("cb-gallery-note").textContent="";
+};
+const url=new URL(location.href);
+if(url.searchParams.has("c")){
+  const ops=decodeOps(url.searchParams.get("c"));
+  if(ops!==null){
+    steps=ops;render();exportCode();
+    $("cb-share-msg").textContent="Circuito compartido cargado: "+ops.length+" puertas.";
+  }else $("cb-share-msg").textContent="Enlace no válido: no se ha cargado ninguna puerta.";
+}
+})();
+</script>
+</body>
+</html>

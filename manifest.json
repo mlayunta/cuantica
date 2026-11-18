@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "Cuántica de Bolsillo",
+  "short_name": "Cuántica",
+  "description": "Laboratorio de física cuántica de Miguel Ángel Layunta López.",
+  "lang": "es",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "categories": ["education"],
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    }
+  ]
+}
